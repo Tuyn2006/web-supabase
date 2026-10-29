@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Danh Sách Sản Phẩm - Supabase</title>
-  <!-- Nhúng thư viện Supabase JS -->
+  <title>Quản Lý Sản Phẩm - Supabase</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
@@ -19,15 +18,51 @@
     .card {
       background: #ffffff;
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       border-radius: 12px;
       padding: 24px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     h2 {
-      margin: 0 0 16px 0;
+      margin: 0 0 20px 0;
       color: #111827;
       text-align: center;
+    }
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .add-form input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .add-form input:focus {
+      border-color: #2563eb;
+    }
+    .add-form button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .add-form button:hover {
+      background-color: #1d4ed8;
+    }
+    .add-form button:disabled {
+      background-color: #93c5fd;
+      cursor: not-allowed;
     }
     ul {
       list-style: none;
@@ -63,69 +98,114 @@
       color: #6b7280;
       padding: 20px 0;
     }
+    .status-msg {
+      font-size: 13px;
+      margin-top: -16px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>📦 Danh Sách Sản Phẩm</h2>
+    <h2>📦 Quản Lý Sản Phẩm</h2>
+
+    <!-- Form thêm sản phẩm -->
+    <form class="add-form" id="form-add">
+      <input 
+        type="text" 
+        id="input-title" 
+        placeholder="Nhập tên sản phẩm mới..." 
+        required 
+        autocomplete="off"
+      />
+      <button type="submit" id="btn-add">+ Thêm</button>
+    </form>
+    <div id="status-msg" class="status-msg"></div>
+
+    <!-- Danh sách sản phẩm -->
     <ul id="product-list">
-      <li class="loading">Đang kết nối tới Supabase...</li>
+      <li class="loading">Đang tải danh sách sản phẩm...</li>
     </ul>
   </div>
 
   <script>
-    // Bắt lỗi toàn cục để hiển thị thẳng lên màn hình
-    window.onerror = function(msg, url, lineNo) {
-      const listElement = document.getElementById('product-list');
-      if (listElement) listElement.innerHTML = `<li style="color:red">Lỗi JS: ${msg} (Dòng ${lineNo})</li>`;
-      return false;
-    };
-
     const SUPABASE_URL = 'https://ajxthuzvtvkariognhww.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_P6TM4KZ0yiUwng-KR13t3Q_GWPewKgz';
 
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 1. Hàm tải và hiển thị danh sách sản phẩm
     async function loadProducts() {
       const listElement = document.getElementById('product-list');
-      try {
-        if (!window.supabase) {
-          listElement.innerHTML = '<li style="color:red">Chưa tải được thư viện Supabase JS!</li>';
-          return;
-        }
 
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data, error } = await client
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false }); // Mới nhất lên đầu
 
-        const { data, error } = await client
-          .from('products')
-          .select('*');
-
-        if (error) {
-          listElement.innerHTML = `<li style="color: #dc2626;">❌ Lỗi: ${error.message}</li>`;
-          return;
-        }
-
-        listElement.innerHTML = '';
-
-        if (!data || data.length === 0) {
-          listElement.innerHTML = '<li class="empty">Chưa có sản phẩm nào trong bảng.</li>';
-          return;
-        }
-
-        data.forEach(item => {
-          const li = document.createElement('li');
-          const isDone = item.is_completed;
-          li.innerHTML = `
-            <span><strong>${item.title || '(Không có tiêu đề)'}</strong></span>
-            <span class="badge ${isDone ? 'badge-done' : 'badge-pending'}">
-              ${isDone ? 'Đã xong' : 'Chờ xử lý'}
-            </span>
-          `;
-          listElement.appendChild(li);
-        });
-      } catch (err) {
-        listElement.innerHTML = `<li style="color:red">❌ Ngoại lệ: ${err.message}</li>`;
+      if (error) {
+        listElement.innerHTML = `<li style="color: #dc2626;">❌ Lỗi: ${error.message}</li>`;
+        return;
       }
+
+      listElement.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        listElement.innerHTML = '<li class="empty">Chưa có sản phẩm nào.</li>';
+        return;
+      }
+
+      data.forEach(item => {
+        const li = document.createElement('li');
+        const isDone = item.is_completed;
+        li.innerHTML = `
+          <span><strong>${item.title || '(Không có tiêu đề)'}</strong></span>
+          <span class="badge ${isDone ? 'badge-done' : 'badge-pending'}">
+            ${isDone ? 'Đã xong' : 'Chờ xử lý'}
+          </span>
+        `;
+        listElement.appendChild(li);
+      });
     }
+
+    // 2. Xử lý khi bấm nút "Thêm sản phẩm"
+    const formAdd = document.getElementById('form-add');
+    const inputTitle = document.getElementById('input-title');
+    const btnAdd = document.getElementById('btn-add');
+    const statusMsg = document.getElementById('status-msg');
+
+    formAdd.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = inputTitle.value.trim();
+      if (!title) return;
+
+      btnAdd.disabled = true;
+      btnAdd.textContent = 'Đang lưu...';
+      statusMsg.textContent = '';
+
+      // Gửi dữ liệu lên Supabase
+      const { data, error } = await client
+        .from('products')
+        .insert([{ title: title, is_completed: false }]);
+
+      if (error) {
+        statusMsg.style.color = '#dc2626';
+        statusMsg.textContent = '❌ Lỗi thêm: ' + error.message;
+      } else {
+        statusMsg.style.color = '#15803d';
+        statusMsg.textContent = '✅ Đã thêm thành công!';
+        inputTitle.value = '';
+        // Tải lại danh sách ngay lập tức
+        loadProducts();
+      }
+
+      btnAdd.disabled = false;
+      btnAdd.textContent = '+ Thêm';
+
+      setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+    });
 
     loadProducts();
   </script>
