@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Danh Sách Sản Phẩm - Supabase</title>
+  <!-- Nhúng thư viện Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+      margin: 0;
+    }
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      margin: 0 0 16px 0;
+      color: #111827;
+      text-align: center;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    li:last-child {
+      border-bottom: none;
+    }
+    .badge {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 9999px;
+    }
+    .badge-done {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+    .badge-pending {
+      background-color: #fef3c7;
+      color: #b45309;
+    }
+    .loading, .empty {
+      text-align: center;
+      color: #6b7280;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>📦 Danh Sách Sản Phẩm</h2>
+    <ul id="product-list">
+      <li class="loading">Đang kết nối tới Supabase...</li>
+    </ul>
+  </div>
+
+  <script>
+    // Bắt lỗi toàn cục để hiển thị thẳng lên màn hình
+    window.onerror = function(msg, url, lineNo) {
+      const listElement = document.getElementById('product-list');
+      if (listElement) listElement.innerHTML = `<li style="color:red">Lỗi JS: ${msg} (Dòng ${lineNo})</li>`;
+      return false;
+    };
+
+    const SUPABASE_URL = 'https://ajxthuzvtvkariognhww.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_P6TM4KZ0yiUwng-KR13t3Q_GWPewKgz';
+
+    async function loadProducts() {
+      const listElement = document.getElementById('product-list');
+      try {
+        if (!window.supabase) {
+          listElement.innerHTML = '<li style="color:red">Chưa tải được thư viện Supabase JS!</li>';
+          return;
+        }
+
+        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const { data, error } = await client
+          .from('products')
+          .select('*');
+
+        if (error) {
+          listElement.innerHTML = `<li style="color: #dc2626;">❌ Lỗi: ${error.message}</li>`;
+          return;
+        }
+
+        listElement.innerHTML = '';
+
+        if (!data || data.length === 0) {
+          listElement.innerHTML = '<li class="empty">Chưa có sản phẩm nào trong bảng.</li>';
+          return;
+        }
+
+        data.forEach(item => {
+          const li = document.createElement('li');
+          const isDone = item.is_completed;
+          li.innerHTML = `
+            <span><strong>${item.title || '(Không có tiêu đề)'}</strong></span>
+            <span class="badge ${isDone ? 'badge-done' : 'badge-pending'}">
+              ${isDone ? 'Đã xong' : 'Chờ xử lý'}
+            </span>
+          `;
+          listElement.appendChild(li);
+        });
+      } catch (err) {
+        listElement.innerHTML = `<li style="color:red">❌ Ngoại lệ: ${err.message}</li>`;
+      }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>
