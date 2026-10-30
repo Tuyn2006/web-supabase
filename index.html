@@ -3,211 +3,591 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quản Lý Sản Phẩm - Supabase</title>
+  <title>OrderFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --bg:         #f0f4ff;
+      --bg2:        #e8eeff;
+      --surface:    #ffffff;
+      --surface2:   #f7f8ff;
+      --border:     #e2e5f0;
+      --border2:    #d4d8ee;
+      --text:       #1a1d3a;
+      --text-2:     #4a4f72;
+      --muted:      #9094b5;
+      --purple:     #6457f9;
+      --purple-lt:  #ede9ff;
+      --violet:     #8b5cf6;
+      --pink:       #ec4899;
+      --pink-lt:    #fce7f3;
+      --teal:       #0ea5e9;
+      --teal-lt:    #e0f2fe;
+      --green:      #10b981;
+      --green-lt:   #d1fae5;
+      --amber:      #f59e0b;
+      --amber-lt:   #fef3c7;
+      --red:        #ef4444;
+      --r:          20px;
+      --r-sm:       12px;
+      --shadow-sm:  0 1px 3px rgba(100,87,249,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow:     0 4px 20px rgba(100,87,249,.10), 0 1px 4px rgba(0,0,0,.05);
+      --shadow-lg:  0 12px 40px rgba(100,87,249,.14), 0 4px 12px rgba(0,0,0,.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 16px 120px;
       display: flex;
       justify-content: center;
-      padding: 40px 16px;
-      margin: 0;
+      overflow-x: hidden;
+      position: relative;
     }
+
+    /* ── Nền gradient pastel nhẹ nhàng ── */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 55% at 0%   0%,   rgba(100,87,249,.10) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 100%  15%,  rgba(236,72,153,.08) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 50%  100%,  rgba(14,165,233,.07) 0%, transparent 60%);
+    }
+
+    /* ── Blob trôi nổi ── */
+    .blob {
+      position: fixed; border-radius: 50%; filter: blur(70px);
+      pointer-events: none; z-index: 0; animation: blobFloat 10s ease-in-out infinite;
+    }
+    .b1 { width:380px;height:380px; background:rgba(100,87,249,.08); top:-80px;  left:-80px;  animation-delay:0s; }
+    .b2 { width:300px;height:300px; background:rgba(236,72,153,.07); top:35%;    right:-60px; animation-delay:-4s; }
+    .b3 { width:340px;height:340px; background:rgba(14,165,233,.07);  bottom:0;  left:25%;    animation-delay:-7s; }
+    @keyframes blobFloat {
+      0%,100% { transform:translate(0,0) scale(1); }
+      33%      { transform:translate(20px,-15px) scale(1.04); }
+      66%      { transform:translate(-15px,12px) scale(.97); }
+    }
+
+    /* ── Layout ── */
+    .app { position:relative; z-index:1; width:100%; max-width:620px; }
+
+    /* ── Brand ── */
+    .brand {
+      display:flex; align-items:center; gap:10px; margin-bottom:36px;
+    }
+    .brand-logo {
+      width:40px; height:40px; border-radius:12px;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      display:flex; align-items:center; justify-content:center; font-size:20px;
+      box-shadow: 0 4px 16px rgba(100,87,249,.35);
+    }
+    .brand-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight:700; font-size:18px; letter-spacing:-.3px; color:var(--text);
+    }
+    .brand-name span { color:var(--purple); }
+    .live-badge {
+      margin-left:auto; display:flex; align-items:center; gap:6px;
+      background: var(--green-lt); border:1px solid rgba(16,185,129,.25);
+      border-radius:20px; padding:5px 12px;
+    }
+    .live-dot { width:6px;height:6px;border-radius:50%;background:var(--green);
+      box-shadow:0 0 8px var(--green); animation:blink 2s ease-in-out infinite; }
+    .live-text { font-size:11px; font-weight:700; color:var(--green); letter-spacing:.5px; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── Hero ── */
+    .hero { margin-bottom:28px; }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+      color:var(--purple); margin-bottom:12px;
+    }
+    .eyebrow-line { width:20px;height:1.5px;background:var(--purple);border-radius:2px;opacity:.4; }
+    .hero-title {
+      font-family:'Space Grotesk',sans-serif;
+      font-size:clamp(26px,5vw,38px); font-weight:700; letter-spacing:-1.2px;
+      line-height:1.12; margin-bottom:10px; color:var(--text);
+    }
+    .hero-title .hi {
+      background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .hero-sub { font-size:14px; color:var(--text-2); line-height:1.65; }
+
+    /* ── Card chính ── */
     .card {
-      background: #ffffff;
-      width: 100%;
-      max-width: 500px;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    h2 {
-      margin: 0 0 20px 0;
-      color: #111827;
-      text-align: center;
-    }
-    .add-form {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-    }
-    .add-form input {
-      flex: 1;
-      padding: 10px 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .add-form input:focus {
-      border-color: #2563eb;
-    }
-    .add-form button {
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-    .add-form button:hover {
-      background-color: #1d4ed8;
-    }
-    .add-form button:disabled {
-      background-color: #93c5fd;
-      cursor: not-allowed;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    li:last-child {
-      border-bottom: none;
-    }
-    .badge {
-      font-size: 12px;
-      font-weight: 500;
-      padding: 4px 8px;
-      border-radius: 9999px;
-    }
-    .badge-done {
-      background-color: #dcfce7;
-      color: #15803d;
-    }
-    .badge-pending {
-      background-color: #fef3c7;
-      color: #b45309;
-    }
-    .loading, .empty {
-      text-align: center;
-      color: #6b7280;
-      padding: 20px 0;
-    }
-    .status-msg {
-      font-size: 13px;
-      margin-top: -16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
       margin-bottom: 16px;
-      text-align: center;
+    }
+
+    /* ── Stats ── */
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); }
+    .stat-cell {
+      padding:22px 18px; position:relative; transition:background .2s;
+    }
+    .stat-cell + .stat-cell::before {
+      content:""; position:absolute; left:0; top:16%; bottom:16%;
+      width:1px; background:var(--border);
+    }
+    .stat-cell:hover { background:var(--surface2); }
+    .s-label {
+      font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+      color:var(--muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;
+    }
+    .s-dot { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+    .s-value {
+      font-family:'Space Grotesk',sans-serif;
+      font-size:30px; font-weight:700; letter-spacing:-1px; line-height:1;
+    }
+    .s-sub { font-size:11px; color:var(--muted); margin-top:4px; font-weight:500; }
+
+    /* ── Progress ── */
+    .prog-section { padding:16px 22px 20px; border-top:1px solid var(--border); }
+    .prog-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .prog-meta-label { font-size:12px; font-weight:600; color:var(--text-2); }
+    .prog-meta-val { font-size:13px; font-weight:700; color:var(--purple); }
+    .prog-rail { height:8px; background:var(--bg2); border-radius:99px; overflow:hidden; }
+    .prog-fill {
+      height:100%; border-radius:99px;
+      background: linear-gradient(90deg, var(--purple), var(--violet), var(--pink));
+      background-size:200%;
+      transition: width .7s cubic-bezier(.16,1,.3,1);
+      animation: fillShimmer 3s linear infinite;
+    }
+    @keyframes fillShimmer { 0%{background-position:0%} 100%{background-position:-200%} }
+
+    /* ── Input ── */
+    .input-section { padding:20px 22px 22px; border-top:1px solid var(--border); }
+    .input-row { display:flex; gap:10px; }
+    .input-wrap {
+      flex:1; display:flex; align-items:center; gap:10px;
+      background:var(--surface2); border:1.5px solid var(--border);
+      border-radius:var(--r-sm); padding:0 16px;
+      transition:all .25s;
+    }
+    .input-wrap:focus-within {
+      border-color:var(--purple);
+      background:#fff;
+      box-shadow:0 0 0 4px rgba(100,87,249,.1);
+    }
+    .input-wrap svg { color:var(--muted); flex-shrink:0; transition:color .2s; }
+    .input-wrap:focus-within svg { color:var(--purple); }
+    .input-wrap input {
+      flex:1; background:none; border:none; outline:none;
+      font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--text);
+      padding:14px 0;
+    }
+    .input-wrap input::placeholder { color:var(--muted); font-weight:400; }
+
+    .btn-add {
+      display:inline-flex; align-items:center; gap:8px;
+      background: linear-gradient(135deg, var(--purple) 0%, var(--violet) 100%);
+      color:#fff; border:none; border-radius:var(--r-sm);
+      font-family:'Inter',sans-serif; font-size:14px; font-weight:700;
+      padding:14px 22px; cursor:pointer; white-space:nowrap;
+      box-shadow: 0 4px 14px rgba(100,87,249,.35), inset 0 1px 0 rgba(255,255,255,.2);
+      transition:all .22s; position:relative; overflow:hidden;
+    }
+    .btn-add::before {
+      content:""; position:absolute; inset:0;
+      background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 60%);
+    }
+    .btn-add:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(100,87,249,.45), inset 0 1px 0 rgba(255,255,255,.2); }
+    .btn-add:active { transform:translateY(0); }
+    .btn-add:disabled { opacity:.5; pointer-events:none; }
+
+    /* ── Filter tabs ── */
+    .filters { display:flex; gap:6px; padding:0 22px 20px; border-top:1px solid var(--border); padding-top:16px; }
+    .ftab {
+      background:var(--surface2); border:1.5px solid var(--border);
+      border-radius:10px; font-family:'Inter',sans-serif;
+      font-size:12px; font-weight:600; color:var(--text-2);
+      padding:7px 16px; cursor:pointer; transition:all .2s;
+    }
+    .ftab:hover { border-color:var(--border2); color:var(--text); }
+    .ftab.on {
+      background:var(--purple-lt); border-color:rgba(100,87,249,.3); color:var(--purple);
+    }
+
+    /* ── List ── */
+    .list-wrap { padding:0 14px 16px; }
+    .list-header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:4px 8px 12px;
+    }
+    .list-header-lbl { font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+    .list-header-count {
+      font-size:11px; font-weight:700;
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:20px; padding:3px 10px; color:var(--text-2);
+    }
+
+    /* Skeleton */
+    .skel {
+      height:64px; border-radius:var(--r-sm); margin-bottom:6px;
+      background:linear-gradient(90deg, var(--bg) 25%, var(--bg2) 50%, var(--bg) 75%);
+      background-size:200%; animation:skel 1.8s infinite;
+    }
+    @keyframes skel { 0%{background-position:200%} 100%{background-position:-200%} }
+
+    /* Item card */
+    .item {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 16px; border-radius:var(--r-sm);
+      border:1.5px solid transparent;
+      background:var(--surface2);
+      margin-bottom:6px;
+      transition:all .22s cubic-bezier(.16,1,.3,1);
+      position:relative; overflow:hidden;
+      animation:slideUp .3s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .item:hover {
+      border-color:var(--border2);
+      background:#fff;
+      box-shadow:var(--shadow);
+      transform:translateY(-2px) translateX(2px);
+    }
+
+    /* stripe */
+    .stripe {
+      position:absolute; left:0;top:12%;bottom:12%;
+      width:3px; border-radius:3px; background:linear-gradient(180deg,var(--purple),var(--violet));
+      opacity:0; transition:opacity .2s;
+    }
+    .item:hover .stripe { opacity:1; }
+    .item.done .stripe { background:linear-gradient(180deg,var(--green),var(--teal)); opacity:1; }
+
+    .item.done { background:#f7fff9; border-color:rgba(16,185,129,.1); }
+    .item.done:hover { border-color:rgba(16,185,129,.25); background:#fff; }
+    .item.done .item-name { text-decoration:line-through; color:var(--muted); }
+
+    /* Checkbox */
+    .chk {
+      width:24px; height:24px; border-radius:50%; flex-shrink:0;
+      border:1.5px solid var(--border2);
+      background:var(--surface); display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all .2s;
+    }
+    .chk:hover { border-color:var(--green); box-shadow:0 0 0 3px var(--green-lt); transform:scale(1.08); }
+    .item.done .chk {
+      background:linear-gradient(135deg,var(--green),#34d399);
+      border-color:transparent;
+      box-shadow:0 0 0 3px var(--green-lt), 0 2px 8px rgba(16,185,129,.3);
+    }
+    .chk svg { display:none; }
+    .item.done .chk svg { display:block; }
+
+    .item-name { flex:1; font-size:14px; font-weight:500; color:var(--text); line-height:1.5; }
+
+    /* Pill */
+    .pill {
+      font-size:11px; font-weight:700; padding:5px 12px; border-radius:20px;
+      cursor:pointer; flex-shrink:0; user-select:none; transition:all .2s; letter-spacing:.2px;
+    }
+    .pill-pending { background:var(--amber-lt); color:#b45309; border:1px solid rgba(245,158,11,.2); }
+    .pill-pending:hover { background:#fde68a; }
+    .pill-done    { background:var(--green-lt); color:#047857; border:1px solid rgba(16,185,129,.2); }
+    .pill-done:hover { background:#a7f3d0; }
+
+    /* ── Empty state ── */
+    .empty { padding:48px 20px; text-align:center; }
+    .empty-icon { font-size:48px; margin-bottom:14px; }
+    .empty-title { font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px; }
+    .empty-sub { font-size:13px; color:var(--muted); line-height:1.65; }
+
+    /* ── Toast ── */
+    .toast-area {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      z-index:999; display:flex; flex-direction:column; align-items:center; gap:8px;
+      pointer-events:none;
+    }
+    .toast {
+      background:#fff; border-radius:14px;
+      border:1px solid var(--border);
+      padding:12px 20px; font-size:13px; font-weight:600; color:var(--text);
+      box-shadow:0 8px 30px rgba(100,87,249,.18), 0 2px 8px rgba(0,0,0,.06);
+      animation:tIn .3s cubic-bezier(.16,1,.3,1) forwards;
+      pointer-events:auto; display:flex; align-items:center; gap:10px;
+    }
+    .toast.out { animation:tOut .3s ease forwards; }
+    @keyframes tIn  { from{opacity:0;transform:translateY(10px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes tOut { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(6px) scale(.97)} }
+
+    /* ── Responsive ── */
+    @media(max-width:480px) {
+      body { padding:24px 12px 100px; }
+      .hero-title { letter-spacing:-.8px; }
+      .s-value { font-size:24px; }
+      .stats-row { grid-template-columns:repeat(3,1fr); }
     }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Đơn hàng cần xử lý trong ngày</h2>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
 
-    <!-- Form thêm sản phẩm -->
-    <form class="add-form" id="form-add">
-      <input 
-        type="text" 
-        id="input-title" 
-        placeholder="Nhập vào đơn hàng cần xử lý..." 
-        required 
-        autocomplete="off"
-      />
-      <button type="submit" id="btn-add">+ Thêm</button>
-    </form>
-    <div id="status-msg" class="status-msg"></div>
+<div class="app">
 
-    <!-- Danh sách sản phẩm -->
-    <ul id="product-list">
-      <li class="loading">Đang tải danh sách sản phẩm...</li>
-    </ul>
+  <!-- Brand bar -->
+  <div class="brand">
+    <div class="brand-logo">🗂</div>
+    <div class="brand-name">Order<span>Flow</span></div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span class="live-text">LIVE</span>
+    </div>
   </div>
 
-  <script>
-    const SUPABASE_URL = 'https://ajxthuzvtvkariognhww.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_P6TM4KZ0yiUwng-KR13t3Q_GWPewKgz';
+  <!-- Hero -->
+  <div class="hero">
+    <div class="eyebrow">
+      <span class="eyebrow-line"></span>
+      <span id="date-lbl">Hôm nay</span>
+    </div>
+    <h1 class="hero-title">
+      <span class="hi">Đơn hàng</span><br>
+      cần xử lý hôm nay
+    </h1>
+    <p class="hero-sub">Tất cả đơn hàng được đồng bộ thời gian thực từ Supabase.<br>Nhấn vào trạng thái để cập nhật ngay lập tức.</p>
+  </div>
 
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <!-- Main card -->
+  <div class="card">
 
-    // 1. Hàm tải và hiển thị danh sách sản phẩm
-    async function loadProducts() {
-      const listElement = document.getElementById('product-list');
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-cell">
+        <div class="s-label">
+          <span class="s-dot" style="background:var(--purple);box-shadow:0 0 6px rgba(100,87,249,.5)"></span>
+          Tổng đơn
+        </div>
+        <div class="s-value" id="s-total" style="color:var(--purple)">0</div>
+        <div class="s-sub">đơn trong ngày</div>
+      </div>
+      <div class="stat-cell">
+        <div class="s-label">
+          <span class="s-dot" style="background:var(--amber);box-shadow:0 0 6px rgba(245,158,11,.5)"></span>
+          Chờ xử lý
+        </div>
+        <div class="s-value" id="s-pending" style="color:var(--amber)">0</div>
+        <div class="s-sub">cần thực hiện</div>
+      </div>
+      <div class="stat-cell">
+        <div class="s-label">
+          <span class="s-dot" style="background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.5)"></span>
+          Hoàn thành
+        </div>
+        <div class="s-value" id="s-done" style="color:var(--green)">0</div>
+        <div class="s-sub">đã xong</div>
+      </div>
+    </div>
 
-      const { data, error } = await client
-        .from('products')
-        .select('*')
-        .order('id', { ascending: false }); // Mới nhất lên đầu
+    <!-- Progress -->
+    <div class="prog-section">
+      <div class="prog-meta">
+        <span class="prog-meta-label">Tiến độ hoàn thành hôm nay</span>
+        <span class="prog-meta-val" id="pct">0%</span>
+      </div>
+      <div class="prog-rail">
+        <div class="prog-fill" id="prog-bar" style="width:0%"></div>
+      </div>
+    </div>
 
-      if (error) {
-        listElement.innerHTML = `<li style="color: #dc2626;">❌ Lỗi: ${error.message}</li>`;
-        return;
-      }
+    <!-- Input -->
+    <div class="input-section">
+      <div class="input-row">
+        <div class="input-wrap">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <input id="inp" type="text" placeholder="Nhập đơn hàng hoặc công việc mới…" autocomplete="off"/>
+        </div>
+        <button class="btn-add" id="btn-add" onclick="addItem()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+          </svg>
+          Thêm
+        </button>
+      </div>
+    </div>
 
-      listElement.innerHTML = '';
+    <!-- Filters -->
+    <div class="filters">
+      <button class="ftab on" data-f="all">🗂 Tất cả</button>
+      <button class="ftab" data-f="pending">⏳ Đang xử lý</button>
+      <button class="ftab" data-f="done">✅ Hoàn thành</button>
+    </div>
 
-      if (!data || data.length === 0) {
-        listElement.innerHTML = '<li class="empty">Chưa có sản phẩm nào.</li>';
-        return;
-      }
+    <!-- List -->
+    <div class="list-wrap" id="list-wrap">
+      <div class="skel"></div>
+      <div class="skel" style="opacity:.65"></div>
+      <div class="skel" style="opacity:.35"></div>
+    </div>
 
-      data.forEach(item => {
-        const li = document.createElement('li');
-        const isDone = item.is_completed;
-        li.innerHTML = `
-          <span><strong>${item.title || '(Không có tiêu đề)'}</strong></span>
-          <span class="badge ${isDone ? 'badge-done' : 'badge-pending'}">
-            ${isDone ? 'Đã xong' : 'Chờ xử lý'}
-          </span>
-        `;
-        listElement.appendChild(li);
-      });
+  </div><!-- /card -->
+</div>
+
+<!-- Toasts -->
+<div class="toast-area" id="toast-area"></div>
+
+<script>
+  /* Ngày */
+  const opts = { weekday:'long', day:'numeric', month:'numeric', year:'numeric' };
+  document.getElementById('date-lbl').textContent =
+    new Date().toLocaleDateString('vi-VN', opts).replace(',',' •');
+
+  /* Supabase */
+  const sb = window.supabase.createClient(
+    'https://ajxthuzvtvkariognhww.supabase.co',
+    'sb_publishable_P6TM4KZ0yiUwng-KR13t3Q_GWPewKgz'
+  );
+
+  let items  = [];
+  let filter = 'all';
+
+  async function load() {
+    const { data, error } = await sb.from('products').select('*').order('id',{ascending:false});
+    if (error) { toast('❌ ' + error.message, '#ef4444'); return; }
+    items = data || [];
+    refresh();
+  }
+
+  function refresh() {
+    const total   = items.length;
+    const done    = items.filter(i => i.is_completed).length;
+    const pending = total - done;
+    const pct     = total ? Math.round(done / total * 100) : 0;
+
+    countTo('s-total',   total);
+    countTo('s-pending', pending);
+    countTo('s-done',    done);
+    document.getElementById('pct').textContent      = pct + '%';
+    document.getElementById('prog-bar').style.width = pct + '%';
+    renderList();
+  }
+
+  function renderList() {
+    const wrap = document.getElementById('list-wrap');
+    let src = items;
+    if (filter === 'pending') src = items.filter(i => !i.is_completed);
+    if (filter === 'done')    src = items.filter(i =>  i.is_completed);
+
+    if (!src.length) {
+      const m = {
+        all:     { icon:'📭', t:'Chưa có đơn hàng nào',   s:'Hãy thêm đơn hàng đầu tiên ở trên.' },
+        pending: { icon:'☕', t:'Không có gì chờ xử lý!', s:'Tất cả đơn đã hoàn thành rồi! 🎉' },
+        done:    { icon:'🎯', t:'Chưa có gì hoàn thành',  s:'Nhấn vào trạng thái để đánh dấu xong.' },
+      }[filter];
+      wrap.innerHTML = `<div class="empty">
+        <div class="empty-icon">${m.icon}</div>
+        <div class="empty-title">${m.t}</div>
+        <div class="empty-sub">${m.s}</div>
+      </div>`;
+      return;
     }
 
-    // 2. Xử lý khi bấm nút "Thêm sản phẩm"
-    const formAdd = document.getElementById('form-add');
-    const inputTitle = document.getElementById('input-title');
-    const btnAdd = document.getElementById('btn-add');
-    const statusMsg = document.getElementById('status-msg');
+    wrap.innerHTML = `<div class="list-header">
+      <span class="list-header-lbl">Danh sách đơn hàng</span>
+      <span class="list-header-count">${src.length} mục</span>
+    </div>`;
 
-    formAdd.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const title = inputTitle.value.trim();
-      if (!title) return;
-
-      btnAdd.disabled = true;
-      btnAdd.textContent = 'Đang lưu...';
-      statusMsg.textContent = '';
-
-      // Gửi dữ liệu lên Supabase
-      const { data, error } = await client
-        .from('products')
-        .insert([{ title: title, is_completed: false }]);
-
-      if (error) {
-        statusMsg.style.color = '#dc2626';
-        statusMsg.textContent = '❌ Lỗi thêm: ' + error.message;
-      } else {
-        statusMsg.style.color = '#15803d';
-        statusMsg.textContent = '✅ Đã thêm thành công!';
-        inputTitle.value = '';
-        // Tải lại danh sách ngay lập tức
-        loadProducts();
-      }
-
-      btnAdd.disabled = false;
-      btnAdd.textContent = '+ Thêm';
-
-      setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+    src.forEach((it, idx) => {
+      const d = document.createElement('div');
+      d.className = 'item' + (it.is_completed ? ' done' : '');
+      d.style.animationDelay = idx * 45 + 'ms';
+      d.innerHTML = `
+        <div class="stripe"></div>
+        <button class="chk" onclick="toggle(${it.id},${!it.is_completed})">
+          <svg width="11" height="11" fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </button>
+        <span class="item-name">${safe(it.title)}</span>
+        <span class="pill ${it.is_completed ? 'pill-done':'pill-pending'}"
+              onclick="toggle(${it.id},${!it.is_completed})">
+          ${it.is_completed ? '✓ Xong' : '⏳ Chờ'}
+        </span>`;
+      wrap.appendChild(d);
     });
+  }
 
-    loadProducts();
-  </script>
+  async function toggle(id, val) {
+    const it = items.find(i => i.id === id);
+    if (it) { it.is_completed = val; refresh(); }
+    const { error } = await sb.from('products').update({is_completed:val}).eq('id',id);
+    if (error) { toast('⚠️ Lỗi đổi trạng thái', '#f59e0b'); load(); }
+  }
+
+  async function addItem() {
+    const inp = document.getElementById('inp');
+    const btn = document.getElementById('btn-add');
+    const txt = inp.value.trim();
+    if (!txt) { inp.focus(); return; }
+
+    btn.disabled = true; btn.textContent = 'Đang lưu…';
+    const { error } = await sb.from('products').insert([{title:txt, is_completed:false}]);
+    if (error) {
+      toast('❌ Lỗi: ' + error.message, '#ef4444');
+    } else {
+      toast('✨ Đã thêm đơn hàng thành công!', '#10b981');
+      inp.value = ''; load();
+    }
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg> Thêm`;
+  }
+
+  document.getElementById('inp').addEventListener('keydown', e => { if(e.key==='Enter') addItem(); });
+
+  document.querySelectorAll('.ftab').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.ftab').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); filter = b.dataset.f; renderList();
+  }));
+
+  function toast(msg, color = '#6457f9') {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = `<span style="font-size:16px">${msg.split(' ')[0]}</span>
+      <span style="color:${color}">${msg.split(' ').slice(1).join(' ')}</span>`;
+    const area = document.getElementById('toast-area');
+    area.appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, 3000);
+  }
+
+  function countTo(id, target) {
+    const el = document.getElementById(id);
+    const from = parseInt(el.textContent) || 0;
+    if (from === target) return;
+    const dur = 500, s = performance.now();
+    const tick = n => {
+      const p = Math.min((n - s) / dur, 1);
+      el.textContent = Math.round(from + (target - from) * (p < .5 ? 2*p*p : -1+(4-2*p)*p));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  function safe(str) { const d = document.createElement('div'); d.textContent = str || '(Không có tiêu đề)'; return d.innerHTML; }
+
+  load();
+</script>
 </body>
 </html>
